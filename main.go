@@ -1,41 +1,46 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 )
 
-// Handler for the root URL "/"
-func handler(w http.ResponseWriter, r *http.Request) {
-	// Parse the template file
-	tmpl, err := template.ParseFiles("templates/index.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Pass data to the template
-	data := struct {
-		Title string
-	}{
-		Title: "There",
-	}
-
-	// Render the template with the data
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+type PageData struct {
+	Name string
 }
 
 func main() {
-	// Register the handler for the root URL "/"
-	http.HandleFunc("/", handler)
+	tmpl := template.Must(template.New("").ParseGlob("./templates/*"))
 
-	// Start the server
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+	router := http.NewServeMux()
+
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+			Name: "Joe",
+		})
+		if err != nil {
+			http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			fmt.Println("Template execution error:", err)
+		}
+	})
+
+	srv := http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+
+	fmt.Println("Starting website at localhost:8080")
+
+	err := srv.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		fmt.Println("An error occured:", err)
 	}
 }
