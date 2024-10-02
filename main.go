@@ -8,7 +8,8 @@ import (
 )
 
 type PageData struct {
-	Name string
+	OriginalUrl string
+	ShortUrl    string
 }
 
 func main() {
@@ -19,10 +20,13 @@ func main() {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			r.ParseForm()
-			name := r.FormValue("name")
+			url := r.FormValue("url")
+
+			shortUrl := "https://short.ly/abcd1234"
 
 			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-				Name: name,
+				OriginalUrl: url,
+				ShortUrl:    shortUrl,
 			})
 			if err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -30,7 +34,8 @@ func main() {
 			}
 		} else if r.Method == http.MethodGet {
 			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-				Name: "",
+				OriginalUrl: "",
+				ShortUrl:    "",
 			})
 			if err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)

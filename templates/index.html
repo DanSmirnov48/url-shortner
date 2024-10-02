@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Url Shortner</title>
+    <title>URL Shortener</title>
     <style>
       body {
         display: flex;
@@ -68,22 +68,38 @@
       .result {
         margin-top: 20px;
         font-size: 18px;
+      }
+
+      .result p {
         color: #4caf50;
+      }
+
+      .result a {
+        color: #4caf50;
+        text-decoration: none;
+      }
+
+      .result a:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
   <body>
     <div class="form-container">
-      <h1>Enter Your Name</h1>
+      <h1>URL Shortener</h1>
       <form action="/" method="POST">
-        <input type="text" name="name" placeholder="Your Name" />
-        <input type="submit" value="Submit" />
+        <input type="text" name="url" placeholder="Enter URL to shorten" />
+        <input type="submit" value="Shorten URL" />
       </form>
 
-      <!-- This section displays the submitted name, if available -->
-      {{ if .Name }}
+      <!-- This section displays the original and short URL after form submission -->
+      {{ if .OriginalUrl }}
       <div class="result">
-        <p>Hello, {{ .Name }}!</p>
+        <p>Original URL: {{ .OriginalUrl }}</p>
+        <p>
+          Shortened URL:
+          <a href="{{ .ShortUrl }}" target="_blank">{{ .ShortUrl }}</a>
+        </p>
       </div>
       {{ end }}
     </div>
