@@ -5,11 +5,45 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type PageData struct {
 	OriginalUrl string
 	ShortUrl    string
+	ErrorMsg    string
+}
+
+func isValidUrl(toTest string) bool {
+	u, err := url.ParseRequestURI(toTest)
+	if err != nil {
+		return false
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+	if u.Host == "" {
+		return false
+	}
+	return true
+}
+
+func isUrlReachable(testUrl string) bool {
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Get(testUrl)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		return true
+	}
+	return false
 }
 
 func main() {
@@ -20,13 +54,38 @@ func main() {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			r.ParseForm()
-			url := r.FormValue("url")
+			urlInput := r.FormValue("url")
+
+			if !isValidUrl(urlInput) {
+				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+					OriginalUrl: urlInput,
+					ErrorMsg:    "Invalid URL. Please enter a valid URL starting with http or https.",
+				})
+				if err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+					fmt.Println("Template execution error:", err)
+				}
+				return
+			}
+
+			if !isUrlReachable(urlInput) {
+				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+					OriginalUrl: urlInput,
+					ErrorMsg:    "The URL does not exist or cannot be reached. Please try a different URL.",
+				})
+				if err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+					fmt.Println("Template execution error:", err)
+				}
+				return
+			}
 
 			shortUrl := "https://short.ly/abcd1234"
 
 			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-				OriginalUrl: url,
+				OriginalUrl: urlInput,
 				ShortUrl:    shortUrl,
+				ErrorMsg:    "",
 			})
 			if err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -36,6 +95,7 @@ func main() {
 			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
 				OriginalUrl: "",
 				ShortUrl:    "",
+				ErrorMsg:    "",
 			})
 			if err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
