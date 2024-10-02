@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html/template"
@@ -13,6 +15,86 @@ type PageData struct {
 	OriginalUrl string
 	ShortUrl    string
 	ErrorMsg    string
+}
+
+var urlStore = make(map[string]string)
+
+func main() {
+	tmpl := template.Must(template.New("").ParseGlob("./templates/*"))
+
+	router := http.NewServeMux()
+
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			r.ParseForm()
+			urlInput := r.FormValue("url")
+
+			if !isValidUrl(urlInput) {
+				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+					OriginalUrl: urlInput,
+					ErrorMsg:    "Invalid URL. Please enter a valid URL starting with http or https.",
+				})
+				if err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+
+			if !isUrlReachable(urlInput) {
+				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+					OriginalUrl: urlInput,
+					ErrorMsg:    "The URL does not exist or cannot be reached. Please try a different URL.",
+				})
+				if err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+
+			shortKey, _ := generateToken()
+			urlStore[shortKey] = urlInput
+
+			shortUrl := "http://localhost:8080/" + shortKey
+
+			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
+				OriginalUrl: urlInput,
+				ShortUrl:    shortUrl,
+				ErrorMsg:    "",
+			})
+			if err != nil {
+				http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			}
+		} else if r.Method == http.MethodGet {
+			err := tmpl.ExecuteTemplate(w, "index.html", PageData{})
+			if err != nil {
+				http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			}
+		}
+	})
+
+	router.HandleFunc("/{shortKey}", func(w http.ResponseWriter, r *http.Request) {
+		shortKey := r.URL.Path[1:]
+
+		originalUrl, exists := urlStore[shortKey]
+		if !exists {
+			http.Error(w, "Short URL not found", http.StatusNotFound)
+			return
+		}
+
+		http.Redirect(w, r, originalUrl, http.StatusFound)
+	})
+
+	srv := http.Server{
+		Addr:    ":8080",
+		Handler: router,
+	}
+
+	fmt.Println("Starting website at http://localhost:8080")
+
+	err := srv.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		fmt.Println("An error occurred:", err)
+	}
 }
 
 func isValidUrl(toTest string) bool {
@@ -46,73 +128,13 @@ func isUrlReachable(testUrl string) bool {
 	return false
 }
 
-func main() {
-	tmpl := template.Must(template.New("").ParseGlob("./templates/*"))
-
-	router := http.NewServeMux()
-
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			r.ParseForm()
-			urlInput := r.FormValue("url")
-
-			if !isValidUrl(urlInput) {
-				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-					OriginalUrl: urlInput,
-					ErrorMsg:    "Invalid URL. Please enter a valid URL starting with http or https.",
-				})
-				if err != nil {
-					http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					fmt.Println("Template execution error:", err)
-				}
-				return
-			}
-
-			if !isUrlReachable(urlInput) {
-				err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-					OriginalUrl: urlInput,
-					ErrorMsg:    "The URL does not exist or cannot be reached. Please try a different URL.",
-				})
-				if err != nil {
-					http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					fmt.Println("Template execution error:", err)
-				}
-				return
-			}
-
-			shortUrl := "https://short.ly/abcd1234"
-
-			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-				OriginalUrl: urlInput,
-				ShortUrl:    shortUrl,
-				ErrorMsg:    "",
-			})
-			if err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-				fmt.Println("Template execution error:", err)
-			}
-		} else if r.Method == http.MethodGet {
-			err := tmpl.ExecuteTemplate(w, "index.html", PageData{
-				OriginalUrl: "",
-				ShortUrl:    "",
-				ErrorMsg:    "",
-			})
-			if err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-				fmt.Println("Template execution error:", err)
-			}
-		}
-	})
-
-	srv := http.Server{
-		Addr:    ":8080",
-		Handler: router,
+func generateToken() (string, error) {
+	bytes := make([]byte, 3)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
 	}
 
-	fmt.Println("Starting website at http://localhost:8080")
+	token := hex.EncodeToString(bytes)
 
-	err := srv.ListenAndServe()
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		fmt.Println("An error occurred:", err)
-	}
+	return token, nil
 }
