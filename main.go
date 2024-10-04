@@ -14,6 +14,14 @@ type PageData struct {
 }
 
 func main() {
+	// Initialize the SQLite database
+	db, err := initDB("url_shortener.db")
+	if err != nil {
+		fmt.Println("Failed to initialize the database:", err)
+		return
+	}
+	defer db.Close()
+
 	// Parse all templates from the ./templates directory
 	tmpl := template.Must(template.New("").ParseGlob("./templates/*"))
 
@@ -21,12 +29,12 @@ func main() {
 
 	// Home page route (handles GET and POST for URL submission)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleHome(w, r, tmpl)
+		handleHome(w, r, tmpl, db)
 	})
 
 	// Route for handling short URL redirection (e.g., /abcd1234)
 	router.HandleFunc("/{shortKey}", func(w http.ResponseWriter, r *http.Request) {
-		handleRedirect(w, r)
+		handleRedirect(w, r, db)
 	})
 
 	srv := http.Server{
@@ -36,7 +44,7 @@ func main() {
 
 	fmt.Println("Starting website at http://localhost:8080")
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fmt.Println("An error occurred:", err)
 	}

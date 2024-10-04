@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func IsValidUrl(toTest string) bool {
+func isValidUrl(toTest string) bool {
 	u, err := url.ParseRequestURI(toTest)
 	if err != nil {
 		return false
@@ -22,7 +22,7 @@ func IsValidUrl(toTest string) bool {
 	return true
 }
 
-func IsUrlReachable(testUrl string) bool {
+func isUrlReachable(testUrl string) bool {
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -39,7 +39,7 @@ func IsUrlReachable(testUrl string) bool {
 	return false
 }
 
-func GenerateToken() (string, error) {
+func generateToken() (string, error) {
 	bytes := make([]byte, 3)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
