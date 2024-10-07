@@ -53,3 +53,14 @@ func getOriginalURL(db *sql.DB, shortKey string) (string, error) {
 	}
 	return originalURL, nil
 }
+
+// Find if a URL has already been shortened
+func findURLMappingByOriginal(db *sql.DB, originalURL string) (string, error) {
+	var shortKey string
+	query := `SELECT short_key FROM url_mappings WHERE original_url = ?`
+	err := db.QueryRow(query, originalURL).Scan(&shortKey)
+	if err == sql.ErrNoRows {
+		return "", nil // URL not found
+	}
+	return shortKey, err
+}

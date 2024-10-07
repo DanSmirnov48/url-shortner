@@ -39,17 +39,29 @@ func handleHome(w http.ResponseWriter, r *http.Request, tmpl *template.Template,
 			return
 		}
 
-		// Generate a short key and store the URL in the database
-		shortKey, _ := generateToken()
-		err := insertURLMapping(db, shortKey, urlInput)
+		// Check if the original URL has already been shortened
+		existingShortKey, err := findURLMappingByOriginal(db, urlInput)
 		if err != nil {
-			http.Error(w, "Failed to store URL", http.StatusInternalServerError)
-			fmt.Println("Database insertion error:", err)
+			http.Error(w, "Failed to check URL", http.StatusInternalServerError)
+			fmt.Println("Database lookup error:", err)
 			return
 		}
 
-		// Shortened URL
-		shortUrl := "http://localhost:8080/" + shortKey
+		// If the URL is already shortened, use the existing short key
+		var shortUrl string
+		if existingShortKey != "" {
+			shortUrl = "http://localhost:8080/" + existingShortKey
+		} else {
+			// If not, generate a new short key and store the URL in the database
+			shortKey, _ := generateToken()
+			err := insertURLMapping(db, shortKey, urlInput)
+			if err != nil {
+				http.Error(w, "Failed to store URL", http.StatusInternalServerError)
+				fmt.Println("Database insertion error:", err)
+				return
+			}
+			shortUrl = "http://localhost:8080/" + shortKey
+		}
 
 		// Render the template with original and short URL
 		err = tmpl.ExecuteTemplate(w, "index.html", PageData{
