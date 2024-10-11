@@ -39,13 +39,10 @@ func isUrlReachable(testUrl string) bool {
 	return false
 }
 
-func generateToken() (string, error) {
+func generateShortKey() string {
 	bytes := make([]byte, 3)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-
+	rand.Read(bytes)
 	token := hex.EncodeToString(bytes)
 
-	return token, nil
+	return token
 }

@@ -27,9 +27,14 @@ func main() {
 
 	router := http.NewServeMux()
 
-	// Home page route (handles GET and POST for URL submission)
+	// Home page route (only handles GET)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handleHome(w, r, tmpl, db)
+		handleHome(w, r, tmpl)
+	})
+
+	// Route for handling the shortening of the URL
+	router.HandleFunc("/shorten", func(w http.ResponseWriter, r *http.Request) {
+		handleShorten(w, r, tmpl, db)
 	})
 
 	// Route for handling short URL redirection (e.g., /abcd1234)

@@ -1,0 +1,39 @@
+<!-- templates/shorten.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Shortened URL</title>
+    <style>
+        body {
+            background-color: #333;
+            color: #ddd;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        a {
+            color: #1e90ff;
+            text-decoration: none;
+            font-size: 1.5em;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Your shortened URL:</h1>
+        <a href="{{.ShortUrl}}" target="_blank">{{.ShortUrl}}</a>
+        <p>Click the link to access your shortened URL.</p>
+    </div>
+</body>
+</html>

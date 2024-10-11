@@ -92,13 +92,8 @@
   <body>
     <div class="form-container">
       <h1>URL Shortener</h1>
-      <form action="/" method="POST">
-        <input
-          type="text"
-          name="url"
-          placeholder="Enter URL to shorten"
-          value="{{ .OriginalUrl }}"
-        />
+      <form action="/shorten" method="POST">
+        <input type="text" name="url" placeholder="Enter your URL" required />
         <input type="submit" value="Shorten URL" />
       </form>
 
@@ -106,19 +101,6 @@
       {{ if .ErrorMsg }}
       <div class="error">
         <p>{{ .ErrorMsg }}</p>
-      </div>
-      {{ end }}
-
-      <!-- This section displays the original and short URL after form submission -->
-      {{ if .OriginalUrl }}
-      <div class="result">
-        <p>Original URL: {{ .OriginalUrl }}</p>
-        {{ if .ShortUrl }}
-        <p>
-          Shortened URL:
-          <a href="{{ .ShortUrl }}" target="_blank">{{ .ShortUrl }}</a>
-        </p>
-        {{ end }}
       </div>
       {{ end }}
     </div>

@@ -7,8 +7,21 @@ import (
 	"net/http"
 )
 
-// handleHome handles the GET and POST requests for the main form
-func handleHome(w http.ResponseWriter, r *http.Request, tmpl *template.Template, db *sql.DB) {
+// handleHome handles the GET request for rendering the main form
+func handleHome(w http.ResponseWriter, r *http.Request, tmpl *template.Template) {
+	if r.Method == http.MethodGet {
+		// Render the form for URL submission
+		err := tmpl.ExecuteTemplate(w, "index.html", PageData{})
+		if err != nil {
+			http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			fmt.Println("Template execution error:", err)
+		}
+	} else {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleShorten(w http.ResponseWriter, r *http.Request, tmpl *template.Template, db *sql.DB) {
 	if r.Method == http.MethodPost {
 		r.ParseForm()
 		urlInput := r.FormValue("url")
@@ -48,38 +61,33 @@ func handleHome(w http.ResponseWriter, r *http.Request, tmpl *template.Template,
 		}
 
 		// If the URL is already shortened, use the existing short key
-		var shortUrl string
+		var shortKey string
 		if existingShortKey != "" {
-			shortUrl = "http://localhost:8080/" + existingShortKey
+			shortKey = existingShortKey
 		} else {
 			// If not, generate a new short key and store the URL in the database
-			shortKey, _ := generateToken()
+			shortKey = generateShortKey()
 			err := insertURLMapping(db, shortKey, urlInput)
 			if err != nil {
 				http.Error(w, "Failed to store URL", http.StatusInternalServerError)
 				fmt.Println("Database insertion error:", err)
 				return
 			}
-			shortUrl = "http://localhost:8080/" + shortKey
 		}
 
-		// Render the template with original and short URL
-		err = tmpl.ExecuteTemplate(w, "index.html", PageData{
+		shortUrl := "http://localhost:8080/" + shortKey
+
+		// Render the shorten.html template with the shortened URL
+		err = tmpl.ExecuteTemplate(w, "shorten.html", PageData{
 			OriginalUrl: urlInput,
 			ShortUrl:    shortUrl,
-			ErrorMsg:    "",
 		})
 		if err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			fmt.Println("Template execution error:", err)
 		}
-	} else if r.Method == http.MethodGet {
-		// Render the form for URL submission
-		err := tmpl.ExecuteTemplate(w, "index.html", PageData{})
-		if err != nil {
-			http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			fmt.Println("Template execution error:", err)
-		}
+	} else {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
